@@ -1261,6 +1261,7 @@ static void body (LexState *ls, expdesc *e, int ismethod, int line) {
 }
 
 
+#ifndef PLUTO_VANILLA_MODE
 /*
 ** Lambda implementation.
 ** Shorthands lambda expressions into `function (...) return ... end`.
@@ -1284,6 +1285,7 @@ static void lambdabody (LexState *ls, expdesc *e, int line) {
   codeclosure(ls, e);
   close_func(ls);
 }
+#endif
 
 
 static int explist (LexState *ls, expdesc *v) {
@@ -1503,10 +1505,12 @@ static void simpleexp (LexState *ls, expdesc *v) {
       body(ls, v, 0, ls->linenumber);
       return;
     }
+#ifndef PLUTO_VANILLA_MODE
     case '|': {
       lambdabody(ls, v, ls->linenumber);
       return;
     }
+#endif
     default: {
       suffixedexp(ls, v);
       return;
