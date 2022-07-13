@@ -36,7 +36,11 @@
 
 /* maximum number of local variables per function (must be smaller
    than 250, due to the bytecode format) */
+#ifdef PLUTO_VANILLA_MODE
+#define MAXVARS		200
+#else
 #define MAXVARS		249
+#endif
 
 
 #define hasmultret(k)		((k) == VCALL || (k) == VVARARG)
