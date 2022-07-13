@@ -861,6 +861,11 @@
 // If defined, Pluto will exclude code snippets from error messages to make them shorter.
 //#define PLUTO_SHORT_ERRORS
 
+// If defined, Pluto will disable its features and improvements outright,
+// so you can benefit from its parser warnings and optimisations, but won't have to worry about writing incompatible code.
+//#define PLUTO_VANILLA_MODE
+
+#ifndef PLUTO_VANILLA_MODE
 // If defined, Pluto will assign 'pluto_' to new keywords which break previously valid Lua identifiers.
 // If you decide to leave this undefined:
 //     - Both 'pluto_switch' and 'switch' are valid syntaxes for Pluto.
@@ -869,6 +874,7 @@
 //     - Only 'pluto_switch' will be valid. 'switch' will not exist.
 //     - Keywords like 'continue' will now be 'pluto_continue'.
 //#define PLUTO_COMPATIBLE_MODE
+#endif
 
 // If defined, Pluto will use a jumptable in the VM even if not compiled via GCC.
 // This will generally improve runtime performance but can add minutes to compile time, depending on the setup.
