@@ -43,9 +43,11 @@ static const char *const luaX_tokens [] = {
     "and", "break", "do", "else", "elseif",
     "end", "false", "for", "function", "goto", "if",
     "in", "local", "nil", "not", "or", "repeat",
+#ifndef PLUTO_VANILLA_MODE
     "pluto_switch", "pluto_case", "pluto_default", "pluto_continue",
 #ifndef PLUTO_COMPATIBLE_MODE
     "switch", "case", "default", "continue",
+#endif
 #endif
     "return", "then", "true", "until", "while",
     "//", "..", "...", "==", ">=", "<=", "~=",
@@ -474,8 +476,9 @@ static bool read_string (LexState *ls, int del, SemInfo *seminfo) {
   return false;
 }
 
+#ifndef PLUTO_VANILLA_MODE
 /* assigns a reserved augmentation symbol to the lexer state token (ls->lasttoken) */
-static int llex_augmented (LexState *ls, int c) {
+static int llex_augmented(LexState *ls, int c) {
   switch (c) {
     case '+': {
       ls->lasttoken = TK_CADD;
@@ -506,6 +509,7 @@ static int llex_augmented (LexState *ls, int c) {
     }
   }
 }
+#endif
 
 static int llex (LexState *ls, SemInfo *seminfo) {
   luaZ_resetbuffer(ls->buff);
@@ -544,12 +548,15 @@ static int llex (LexState *ls, SemInfo *seminfo) {
       }
       case '-': {  /* '-' or '--' (comment) */
         next(ls);
+#ifndef PLUTO_VANILLA_MODE
         if (check_next1(ls, '=')) { /* compound op */
           ls->linebuff += "-=";
           ls->lasttoken = TK_CSUB;
           return '=';
         }
-        else {
+        else
+#endif
+        {
           if (ls->current != '-') {
             ls->linebuff += '-';
             return '-';
@@ -599,12 +606,15 @@ static int llex (LexState *ls, SemInfo *seminfo) {
           return TK_LE;  /* '<=' */
         }
         else if (check_next1(ls, '<')) {
+#ifndef PLUTO_VANILLA_MODE
           if (check_next1(ls, '=')) {  /* compound support */
             ls->linebuff += "<<=";
             ls->lasttoken = TK_CSHL;  /* <<= */
             return '=';
           }
-          else {
+          else
+#endif
+          {
             ls->linebuff += "<<";
             return TK_SHL;  /* '<<' */
           }
@@ -621,12 +631,15 @@ static int llex (LexState *ls, SemInfo *seminfo) {
           return TK_GE;  /* '>=' */
         }
         else if (check_next1(ls, '>')) {
-          if (check_next1(ls, '=')) {  /* compound support */
+#ifndef PLUTO_VANILLA_MODE
+            if (check_next1(ls, '=')) {  /* compound support */
             ls->linebuff += ">>=";
             ls->lasttoken = TK_CSHR;  /* >>= */
             return '=';
           }
-          else {
+          else
+#endif
+          {
             ls->linebuff += ">>";
             return TK_SHR;  /* '>>' */
           }
@@ -638,21 +651,27 @@ static int llex (LexState *ls, SemInfo *seminfo) {
       }
       case '/': {
         next(ls);
+#ifndef PLUTO_VANILLA_MODE
         if (check_next1(ls, '=')) {  /* compound support */
           ls->linebuff += "/=";
           ls->lasttoken = TK_CDIV;
           return '=';
-        } else {
+        }
+        else
+#endif
+        {
           if (check_next1(ls, '/')) {
             if (!check_next1(ls, '=')) {
               ls->linebuff += "//";
               return TK_IDIV;  /* '//' */
             }
+#ifndef PLUTO_VANILLA_MODE
             else {  /* floor division compound support */
               ls->linebuff += "//=";
               ls->lasttoken = TK_CIDIV;
               return '=';
             }
+#endif
           }
           else {
             ls->linebuff += '/';
@@ -686,11 +705,15 @@ static int llex (LexState *ls, SemInfo *seminfo) {
             return TK_DOTS;   /* '...' */
           }
           else {
+#ifndef PLUTO_VANILLA_MODE
             if (check_next1(ls, '=')) {
               ls->linebuff += "..=";
               ls->lasttoken = TK_CCAT;
               return '=';
-            } else {
+            }
+            else
+#endif
+            {
               ls->linebuff += "..";
               return TK_CONCAT;   /* '..' */
             }
@@ -765,6 +788,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
       }
       case '*': {  /* special case compound, need to support mul, exponent, and augmented mul */
         next(ls);
+#ifndef PLUTO_VANILLA_MODE
         if (check_next1(ls, '=')) {
           ls->linebuff += "*=";
           ls->lasttoken = TK_CMUL;
@@ -781,12 +805,15 @@ static int llex (LexState *ls, SemInfo *seminfo) {
             return TK_POW;  /* '**' */
           }
         }
-        else {
+        else
+#endif
+        {
           ls->linebuff += '*';
           return '*';
         }
       }
       /* compound support */
+#ifndef PLUTO_VANILLA_MODE
       case '+':
       case '^': case '%':
       case '|': case '&': { 
@@ -805,6 +832,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
           return c;
         }
       }
+#endif
       /* end of compound support */
       case EOZ: {
         return TK_EOS;

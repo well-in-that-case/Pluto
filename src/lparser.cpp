@@ -220,10 +220,12 @@ static void throw_warn (LexState *ls, const char *err, const char *here) {
       throwerr(ls,
         "expected an identifier.", "this needs a name.");
     }
+#ifndef PLUTO_VANILLA_MODE
     case TK_CONTINUE: {
       throwerr(ls,
         "expected 'continue' inside a loop.", "this is not within a loop.");
     }
+#endif
     default: {
       _default:
       throwerr(ls,
@@ -1033,8 +1035,9 @@ inline int gett(LexState *ls) {
 }
 
 
+#ifndef PLUTO_VANILLA_MODE
 /* Switch logic partially inspired by Paige Marie DePol from the Lua mailing list. */
-static void caselist (LexState *ls, bool isdefault) {
+static void caselist(LexState *ls, bool isdefault) {
   while (gett(ls) != TK_DEFAULT &&
          gett(ls) != TK_CASE    &&
          gett(ls) != TK_END     &&
@@ -1054,6 +1057,7 @@ static void caselist (LexState *ls, bool isdefault) {
     }
   }
 }
+#endif
 
 
 static void fieldsel (LexState *ls, expdesc *v) {
@@ -1546,7 +1550,9 @@ static BinOpr getbinopr (int op) {
     case TK_GE: return OPR_GE;
     case TK_AND: return OPR_AND;
     case TK_OR: return OPR_OR;
+#ifndef PLUTO_VANILLA_MODE
     case TK_POW: return OPR_POW;  /* '**' operator support */
+#endif
     default: return OPR_NOBINOPR;
   }
 }
@@ -1686,6 +1692,7 @@ static void check_conflict (LexState *ls, struct LHS_assign *lh, expdesc *v) {
   }
 }
 
+#ifndef PLUTO_VANILLA_MODE
 /*
   gets the supported binary compound operation (if any)
   gives OPR_NOBINOPR if the operation does not have compound support.
@@ -1786,6 +1793,7 @@ static void compoundassign(LexState *ls, expdesc* v, BinOpr op) {
     luaK_storevar(ls->fs, v, &e);
   }
 }
+#endif
 
 /*
   assignment function
@@ -1809,6 +1817,9 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
     leavelevel(ls);
   }
   else {  /* restassign -> '=' explist */
+#ifdef PLUTO_VANILLA_MODE
+    checknext(ls, '=');
+#else
     BinOpr op;  /* binary operation from lexer state */
     int token = ls->lasttoken; /* lexer state token */
     if (token != 0 && getcompoundop(ls, &op) != 0) {  /* is there a saved binop? */
@@ -1817,7 +1828,9 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
       ls->lasttoken = 0;  /* clear last token from lexer state */
       return;  /* avoid default */
     }
-    else if (testnext(ls, '=')) { /* no requested binop, continue */
+    else if (testnext(ls, '=')) /* no requested binop, continue */
+#endif
+    {
       int nexps = explist(ls, &e);
       if (nexps != nvars)
         adjust_assign(ls, nvars, nexps, &e);
@@ -1871,6 +1884,7 @@ static void breakstat (LexState *ls) {
 }
 
 
+#ifndef PLUTO_VANILLA_MODE
 /*
 ** Continue statement. Semantically similar to "goto continue".
 ** Unlike break, this doesn't use labels. It tracks where to jump via BlockCnt.scopeend;
@@ -1890,6 +1904,7 @@ static void continuestat (LexState *ls) {
   }
   else error_expected(ls, TK_CONTINUE);
 }
+#endif
 
 
 // Test the next token to see if it's either 'token1' or 'token2'.
@@ -1912,6 +1927,7 @@ static const char* expandexpr (LexState *ls) {
   }
 }
 
+#ifndef PLUTO_VANILLA_MODE
 static void switchstat (LexState *ls, int line) {
   FuncState *fs = ls->fs;
   BlockCnt sbl, cbl; // Switch & case blocks.
@@ -1984,6 +2000,7 @@ static void switchstat (LexState *ls, int line) {
   check_match(ls, TK_END, switchToken, line);
   leaveblock(fs);
 }
+#endif
 
 
 /*
@@ -2453,16 +2470,17 @@ static void statement (LexState *ls) {
       breakstat(ls);
       break;
     }
+    case TK_GOTO: {  /* stat -> 'goto' NAME */
+      luaX_next(ls);  /* skip 'goto' */
+      gotostat(ls);
+      break;
+    }
+#ifndef PLUTO_VANILLA_MODE
 #ifndef PLUTO_COMPATIBLE_MODE
     case TK_PCONTINUE:
 #endif
     case TK_CONTINUE: {
       continuestat(ls);
-      break;
-    }
-    case TK_GOTO: {  /* stat -> 'goto' NAME */
-      luaX_next(ls);  /* skip 'goto' */
-      gotostat(ls);
       break;
     }
 #ifndef PLUTO_COMPATIBLE_MODE
@@ -2478,6 +2496,7 @@ static void statement (LexState *ls) {
       switchstat(ls, line);
       break;
     }
+#endif
     default: {  /* stat -> func | assignment */
       exprstat(ls);
       break;

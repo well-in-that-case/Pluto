@@ -33,9 +33,11 @@ enum RESERVED {
   TK_AND = FIRST_RESERVED, TK_BREAK,
   TK_DO, TK_ELSE, TK_ELSEIF, TK_END, TK_FALSE, TK_FOR, TK_FUNCTION,
   TK_GOTO, TK_IF, TK_IN, TK_LOCAL, TK_NIL, TK_NOT, TK_OR, TK_REPEAT,
+#ifndef PLUTO_VANILLA_MODE
   TK_PSWITCH, TK_PCASE, TK_PDEFAULT, TK_PCONTINUE, // New compatibility keywords.
 #ifndef PLUTO_COMPATIBLE_MODE
   TK_SWITCH, TK_CASE, TK_DEFAULT, TK_CONTINUE,  // New non-compatible keywords.
+#endif
 #endif
   TK_RETURN, TK_THEN, TK_TRUE, TK_UNTIL, TK_WHILE,
   /* other terminal symbols */
@@ -47,6 +49,7 @@ enum RESERVED {
   TK_EOS, TK_FLT, 
   TK_INT, TK_NAME, TK_STRING,
   /* Pluto symbols */
+#ifndef PLUTO_VANILLA_MODE
   TK_CSUB, TK_CSHL,     /* subtraction & shift left    */
   TK_CSHR, TK_CBAND,    /* shift right & bitwise AND   */
   TK_CADD, TK_CMUL,     /* addition and multiplication */
@@ -55,6 +58,7 @@ enum RESERVED {
   TK_CIDIV, TK_CDIV,    /* integer and float division  */
   TK_CPOW, TK_POW,      /* exponents / power           */
   TK_CCAT,              /* concatenation               */
+#endif
 };
 
 
