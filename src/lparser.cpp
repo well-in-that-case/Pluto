@@ -220,6 +220,10 @@ static void throw_warn (LexState *ls, const char *err, const char *here) {
       throwerr(ls,
         "expected 'continue' inside a loop.", "this is not within a loop.");
     }
+    case TK_PCASE: {
+      throwerr(ls,
+        "expected 'case' or 'default' inside a switch.", "expected 'case' or 'default'.");
+    }
     default: {
       _default:
       throwerr(ls,
@@ -1941,18 +1945,25 @@ static void switchstat (LexState *ls, int line) {
   new_localvarliteral(ls, "(switch)"); // Save control value into a local.
   adjustlocalvars(ls, 1);
   enterblock(fs, &sbl, 1);
-  do {
+  while (gett(ls) != TK_END) {
     const int caseline = ls->linenumber; // Needed for errors.
 #ifdef PLUTO_COMPATIBLE_CASE
     if (!testnext(ls, TK_PCASE)) {
 #else
     if (!testnext2(ls, TK_PCASE, TK_CASE)) {
 #endif
-#ifdef PLUTO_COMPATIBLE_CASE
-      error_expected(ls, TK_PCASE);
+#ifdef PLUTO_COMPATIBLE_DEFAULT
+      if (testnext(ls, TK_PDEFAULT)) { // Default case.
 #else
-      error_expected(ls, TK_CASE);
+      if (testnext2(ls, TK_PDEFAULT, TK_DEFAULT)) { // Default case.
 #endif
+        checknext(ls, ':');
+        enterblock(fs, &cbl, 0);
+        caselist(ls, true);
+        leaveblock(fs);
+        continue;
+      }
+      error_expected(ls, TK_PCASE);
     }
     if (testnext(ls, '-')) { // Probably a negative constant.
       simpleexp(ls, &lcase, true);
@@ -1996,20 +2007,6 @@ static void switchstat (LexState *ls, int line) {
       luaK_code(fs, CREATE_sJ(OP_JMP, (2 + OFFSET_sJ), false)); // Fall-through.
     }
     luaK_patchtohere(fs, test.u.info); // Jump statements if OP_NE, otherwise continue.
-  } while (gett(ls) != TK_END && (gett(ls) != TK_PDEFAULT
-#ifndef PLUTO_COMPATIBLE_DEFAULT
-      && gett(ls) != TK_DEFAULT
-#endif
-      ));
-#ifdef PLUTO_COMPATIBLE_DEFAULT
-  if (testnext(ls, TK_PDEFAULT)) { // Default case.
-#else
-  if (testnext2(ls, TK_PDEFAULT, TK_DEFAULT)) { // Default case.
-#endif
-    checknext(ls, ':');
-    enterblock(fs, &cbl, 0);
-    caselist(ls, true);
-    leaveblock(fs);
   }
   check_match(ls, TK_END, switchToken, line);
   leaveblock(fs);
