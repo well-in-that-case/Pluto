@@ -1897,7 +1897,7 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
             } else {
               std::string err = "attempt to change type of strict variable ";
               err.append(vardesc->vd.name->contents);
-              luaX_error(ls, err.c_str(), 0);
+              luaX_error(ls, err.c_str());
             }
           }
         }
