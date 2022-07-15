@@ -69,15 +69,12 @@ static const char *const luaX_tokens [] = {
 #define save_and_next(ls) (save(ls, ls->current), next(ls))
 
 
-[[noreturn]] static void lexerror (LexState *ls, const char *msg, int token);
-
-
 static void save (LexState *ls, int c) {
   Mbuffer *b = ls->buff;
   if (luaZ_bufflen(b) + 1 > luaZ_sizebuffer(b)) {
     size_t newsize;
     if (luaZ_sizebuffer(b) >= MAX_SIZE/2)
-      lexerror(ls, "lexical element too long", 0);
+      luaX_error(ls, "lexical element too long", 0);
     newsize = luaZ_sizebuffer(b) * 2;
     luaZ_resizebuffer(ls->L, b, newsize);
   }
@@ -149,7 +146,7 @@ static const char *txtToken (LexState *ls, int token) {
 }
 
 
-[[noreturn]] static void lexerror (LexState *ls, const char *msg, int token) {
+void luaX_error (LexState *ls, const char *msg, int token) {
   msg = luaG_addinfo(ls->L, msg, ls->source, ls->linenumber);
   if (token)
     luaO_pushfstring(ls->L, "%s near %s", msg, txtToken(ls, token));
@@ -158,7 +155,7 @@ static const char *txtToken (LexState *ls, int token) {
 
 
 void luaX_syntaxerror (LexState *ls, const char *msg) {
-  lexerror(ls, msg, ls->t.token);
+  luaX_error(ls, msg, ls->t.token);
 }
 
 
@@ -206,7 +203,7 @@ static void inclinenumber (LexState *ls) {
   if (currIsNewline(ls) && ls->current != old)
     next(ls);  /* skip '\n\r' or '\r\n' */
   if (++ls->linenumber >= MAX_INT)
-    lexerror(ls, "chunk has too many lines", 0);
+    luaX_error(ls, "chunk has too many lines", 0);
 }
 
 
@@ -295,7 +292,7 @@ static int read_numeral (LexState *ls, SemInfo *seminfo) {
     save_and_next(ls);  /* force an error */
   save(ls, '\0');
   if (luaO_str2num(luaZ_buffer(ls->buff), &obj) == 0)  /* format error? */
-    lexerror(ls, "malformed number", TK_FLT);
+    luaX_error(ls, "malformed number", TK_FLT);
   if (ttisinteger(&obj)) {
     seminfo->i = ivalue(&obj);
     return TK_INT;
@@ -340,7 +337,7 @@ static void read_long_string (LexState *ls, SemInfo *seminfo, size_t sep) {
         const char *what = (seminfo ? "string" : "comment");
         const char *msg = luaO_pushfstring(ls->L,
                      "unfinished long %s (starting at line %d)", what, line);
-        lexerror(ls, msg, TK_EOS);
+        luaX_error(ls, msg, TK_EOS);
         break;  /* to avoid warnings */
       }
       case ']': {
@@ -372,7 +369,7 @@ static void esccheck (LexState *ls, int c, const char *msg) {
   if (!c) {
     if (ls->current != EOZ)
       save_and_next(ls);  /* add current to buffer for error message */
-    lexerror(ls, msg, TK_STRING);
+    luaX_error(ls, msg, TK_STRING);
   }
 }
 
@@ -436,11 +433,11 @@ static bool read_string (LexState *ls, int del, SemInfo *seminfo) {
   while (ls->current != del) {
     switch (ls->current) {
       case EOZ:
-        lexerror(ls, "unfinished string", TK_EOS);
+        luaX_error(ls, "unfinished string", TK_EOS);
         break;  /* to avoid warnings */
       case '\n':
       case '\r':
-        lexerror(ls, "unfinished string", TK_STRING);
+        luaX_error(ls, "unfinished string", TK_STRING);
         break;  /* to avoid warnings */
       case '\\': {  /* escape sequences */
         int c;  /* final character to be saved */
@@ -600,7 +597,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
           return TK_STRING;
         }
         else if (sep == 0)  /* '[=...' missing second bracket? */
-          lexerror(ls, "invalid long string delimiter", TK_STRING);
+          luaX_error(ls, "invalid long string delimiter", TK_STRING);
         return '[';
       }
       case '=': {
@@ -816,7 +813,7 @@ static int llex (LexState *ls, SemInfo *seminfo) {
         next(ls);
         if (check_next1(ls, '=')) {
           if (llex_augmented(ls, c) != 1) {
-            lexerror(ls, "unsupported augmented assignment", c);
+            luaX_error(ls, "unsupported augmented assignment", c);
           } else {
             ls->linebuff += c;
             ls->linebuff += '=';
