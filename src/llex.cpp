@@ -132,6 +132,11 @@ const char *luaX_token2str_noq (LexState *ls, int token) {
 }
 
 
+const char* luaX_reserved2str (LexState *ls, int token) {
+  return luaX_tokens[token - FIRST_RESERVED];
+}
+
+
 static const char *txtToken (LexState *ls, int token) {
   switch (token) {
     case TK_NAME: case TK_STRING:
@@ -182,6 +187,11 @@ TString *luaX_newstring (LexState *ls, const char *str, size_t l) {
     L->top--;  /* remove string from stack */
   }
   return ts;
+}
+
+
+LUAI_FUNC TString* luaX_newstring (LexState *ls, const char *str) {
+  return luaX_newstring(ls, str, strlen(str));
 }
 
 

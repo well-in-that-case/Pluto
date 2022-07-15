@@ -341,7 +341,9 @@ static void check_match (LexState *ls, int what, int who, int where) {
 
 static TString *str_checkname (LexState *ls) {
   TString *ts;
-  check(ls, TK_NAME);
+  if (ls->t.token != TK_NAME && !ls->t.IsReservedNonValue()) {
+    error_expected(ls, TK_NAME);
+  }
   ts = ls->t.seminfo.ts;
   luaX_next(ls);
   return ts;
@@ -1120,6 +1122,20 @@ static void recfield (LexState *ls, ConsControl *cc) {
   fs->freereg = reg;  /* free registers */
 }
 
+static void prenamedfield(LexState* ls, ConsControl* cc, const char* name) {
+  FuncState* fs = ls->fs;
+  int reg = ls->fs->freereg;
+  expdesc tab, key, val;
+  codestring(&key, luaX_newstring(ls, name));
+  cc->nh++;
+  luaX_next(ls); /* skip name token */
+  checknext(ls, '=');
+  tab = *cc->t;
+  luaK_indexed(fs, &tab, &key);
+  expr(ls, &val);
+  luaK_storevar(fs, &tab, &val);
+  fs->freereg = reg;  /* free registers */
+}
 
 static void closelistfield (FuncState *fs, ConsControl *cc) {
   if (cc->v.k == VVOID) return;  /* there is no list item */
@@ -1197,7 +1213,11 @@ static void field (LexState *ls, ConsControl *cc) {
       break;
     }
     default: {
-      listfield(ls, cc);
+      if (ls->t.IsReservedNonValue()) {
+        prenamedfield(ls, cc, luaX_reserved2str(ls, ls->t.token));
+      } else {
+        listfield(ls, cc);
+      }
       break;
     }
   }
@@ -1399,28 +1419,24 @@ static void primaryexp (LexState *ls, expdesc *v) {
       singlevar(ls, v);
       return;
     }
+    case '}':
+    case '{': { // Unfinished table constructors.
+       if (ls->t.token == '{') {
+         throwerr(ls, "unfinished table constructor", "did you mean to close with '}'?");
+       }
+       else {
+         throwerr(ls, "unfinished table constructor", "did you mean to enter with '{'?");
+       }
+       return;
+    }
+    case '|': { // Potentially mistyped lambda expression. People may confuse '->' with '=>'.
+      while (testnext(ls, '|') || testnext(ls, TK_NAME) || testnext(ls, ','));
+      throwerr(ls, "unexpected symbol", "impromper or stranded lambda expression.");
+      return;
+    }
     default: {
-      switch (ls->t.token) {
-        case '}':
-        case '{': { // Unfinished table constructors.
-          if (ls->t.token == '{') {
-            throwerr(ls, "unfinished table constructor", "did you mean to close with '}'?");
-          }
-          else {
-            throwerr(ls, "unfinished table constructor", "did you mean to enter with '{'?");
-          }
-          return;
-        }
-        case '|': { // Potentially mistyped lambda expression. People may confuse '->' with '=>'.
-          while (testnext(ls, '|') || testnext(ls, TK_NAME) || testnext(ls, ','));
-          throwerr(ls, "unexpected symbol", "impromper or stranded lambda expression.");
-          return;
-        }
-        default: {
-          const char *token = luaX_token2str(ls, ls->t.token);
-          throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
-        }
-      }
+      const char *token = luaX_token2str(ls, ls->t.token);
+      throwerr(ls, luaO_fmt(ls->L, "unexpected symbol near %s", token), "unexpected symbol.");
     }
   }
 }
@@ -2540,6 +2556,12 @@ static void statement (LexState *ls) {
 #endif
     case TK_PCASE: {
       throwerr(ls, "inappropriate 'case' statement.", "outside of 'switch' block.");
+    }
+#ifndef PLUTO_COMPATIBLE_DEFAULT
+    case TK_DEFAULT:
+#endif
+    case TK_PDEFAULT: {
+      throwerr(ls, "inappropriate 'default' statement.", "outside of 'switch' block.");
     }
 #ifndef PLUTO_COMPATIBLE_SWITCH
     case TK_SWITCH:
