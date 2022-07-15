@@ -90,6 +90,11 @@ typedef struct expdesc {
   int f;  /* patch list of 'exit when false' */
 } expdesc;
 
+struct StrictInfo
+{
+  bool is_strict;
+  lu_byte bound_type;
+};
 
 /* kinds of variables */
 #define VDKREG		0   /* regular */
@@ -106,6 +111,7 @@ typedef union Vardesc {
     short pidx;  /* index of the variable in the Proto's 'locvars' array */
     TString *name;  /* variable name */
     int linenumber;
+    StrictInfo strictinfo;
   } vd;
   TValue k;  /* constant value (if any) */
 } Vardesc;

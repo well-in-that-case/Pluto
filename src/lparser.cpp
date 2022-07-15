@@ -446,7 +446,7 @@ static LocVar *localdebuginfo (FuncState *fs, int vidx) {
 ** Create a new local variable with the given 'name'. Return its index
 ** in the function.
 */
-static int new_localvar (LexState *ls, TString *name) {
+static int new_localvar (LexState *ls, TString *name, bool strict = false) {
   lua_State *L = ls->L;
   FuncState *fs = ls->fs;
   Dyndata *dyd = ls->dyd;
@@ -474,6 +474,8 @@ static int new_localvar (LexState *ls, TString *name) {
   var->vd.kind = VDKREG;  /* default */
   var->vd.name = name;
   var->vd.linenumber = ls->linenumber;
+  var->vd.strictinfo.is_strict = strict;
+  var->vd.strictinfo.bound_type = 0xFF;
   return dyd->actvar.n - 1 - fs->firstlocal;
 }
 
@@ -1878,7 +1880,27 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
       if (nexps != nvars)
         adjust_assign(ls, nvars, nexps, &e);
       else {
+        Vardesc* vardesc = nullptr;
+        bool strict = false;
+        if (lh->v.k == VLOCAL) {
+          vardesc = getlocalvardesc(ls->fs, lh->v.u.var.vidx);
+          strict = vardesc->vd.strictinfo.is_strict;
+        }
         luaK_setoneret(ls->fs, &e);  /* close last expression */
+        if (strict) {
+          if (e.k > VKSTR) {
+            luaX_syntaxerror(ls, "strict variable must be assigned at compile-time");
+          }
+          else if (vardesc->vd.strictinfo.bound_type != e.k) {
+            if (vardesc->vd.strictinfo.bound_type == 0xFF) {
+              vardesc->vd.strictinfo.bound_type = e.k;
+            } else {
+              std::string err = "attempt to change type of strict variable ";
+              err.append(vardesc->vd.name->contents);
+              luaX_error(ls, err.c_str(), 0);
+            }
+          }
+        }
         luaK_storevar(ls->fs, &lh->v, &e);
         return;  /* avoid default */
       }
@@ -2373,8 +2395,9 @@ static void localstat (LexState *ls) {
   int nvars = 0;
   int nexps;
   expdesc e;
+  bool strict = testnext2(ls, TK_PSTRICT, TK_STRICT);
   do {
-    vidx = new_localvar(ls, str_checkname(ls));
+    vidx = new_localvar(ls, str_checkname(ls), strict);
     kind = getlocalattribute(ls);
     getlocalvardesc(fs, vidx)->vd.kind = kind;
     if (kind == RDKTOCLOSE) {  /* to-be-closed? */
