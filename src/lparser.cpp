@@ -2420,8 +2420,22 @@ static void localstat (LexState *ls) {
     var->vd.kind = RDKCTC;  /* variable is a compile-time constant */
     adjustlocalvars(ls, nvars - 1);  /* exclude last variable */
     fs->nactvar++;  /* but count it */
+    if (strict) {
+      luaX_error(ls, "this type of strict variable definition is not implemented yet");
+    }
   }
   else {
+    if (strict) {
+      if (nexps == 1) {
+        if (e.k > VKSTR) {
+          luaX_error(ls, "strict variable definition must be compile-time");
+        }
+        var->vd.strictinfo.bound_type = e.k;
+      }
+      else if (nexps != 0) {
+        luaX_error(ls, "invalid strict variable definition");
+      }
+    }
     adjust_assign(ls, nvars, nexps, &e);
     adjustlocalvars(ls, nvars);
   }
