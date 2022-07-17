@@ -1483,7 +1483,7 @@ static void suffixedexp (LexState *ls, expdesc *v) {
 int cond (LexState *ls);
 static void ifexpr (LexState *ls, expdesc *v) {
   /*
-  ** Patch published by Ryota Hirose.
+  ** Start of patch published by Ryota Hirose.
   */
   FuncState *fs = ls->fs;
   int condition;
@@ -1500,6 +1500,38 @@ static void ifexpr (LexState *ls, expdesc *v) {
   expr(ls, v);
   luaK_exp2reg(fs, v, reg);
   luaK_patchtohere(fs, escape);
+  /*
+  ** End of patch published by Ryota Hirose.
+  */
+}
+
+
+static void walrus_expr (LexState *ls, expdesc *v) {
+  expdesc v2;
+  int reg, pc;
+  FuncState *fs = ls->fs;
+  new_localvar(ls, str_checkname(ls));
+  adjustlocalvars(ls, 2);
+  reg = luaK_exp2anyreg(fs, v); /* Preallocate register for the local to reference. */
+  checknext(ls, TK_WALRUS);
+  expr(ls, &v2);
+  luaK_dischargevars(fs, &v2);
+  switch (v2.k) {
+    case VK:
+    case VKFLT:
+    case VKINT:
+    case VKSTR:
+    case VTRUE: {
+      pc = NO_JUMP; 
+      break;
+    }
+    default: {
+      pc = jumponcond(fs, &v2, 1);
+      break;
+    }
+  }
+  luaK_concat(fs, &v2.f, pc);
+  luaK_exp2reg(fs, &v2, reg);
 }
 
 
@@ -1645,6 +1677,7 @@ static BinOpr subexpr (LexState *ls, expdesc *v, int limit) {
     subexpr(ls, v, UNARY_PRIORITY);
     luaK_prefix(ls->fs, uop, v, line);
   }
+  else if (luaX_lookahead(ls) == TK_WALRUS) walrus_expr(ls, v);
   else if (ls->t.token == TK_IF) ifexpr(ls, v);
   else simpleexp(ls, v, false);
   /* expand while operators have priorities higher than 'limit' */

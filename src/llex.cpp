@@ -688,6 +688,10 @@ static int llex (LexState *ls, SemInfo *seminfo) {
           ls->linebuff += "::";
           return TK_DBCOLON;  /* '::' */
         }
+        else if (check_next1(ls, '=')) {
+          ls->linebuff += ":=";
+          return TK_WALRUS;
+        }
         else {
           ls->linebuff += ':';
           return ':';
