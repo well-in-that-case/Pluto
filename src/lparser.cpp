@@ -1512,6 +1512,9 @@ static void walrus_expr (LexState *ls, expdesc *v) {
   FuncState *fs = ls->fs;
   new_localvar(ls, str_checkname(ls));
   adjustlocalvars(ls, 2);
+  v->t = 0;
+  v->f = 0;
+  v->k = VRELOC;
   reg = luaK_exp2anyreg(fs, v); /* Preallocate register for the local to reference. */
   checknext(ls, TK_WALRUS);
   expr(ls, &v2);

@@ -284,7 +284,6 @@ static void removevalues (FuncState *fs, int list) {
 */
 static void patchlistaux (FuncState *fs, int list, int vtarget, int reg,
                           int dtarget) {
-  if (reg == 0) return;
   while (list != NO_JUMP) {
     int next = getjump(fs, list);
     if (patchtestreg(fs, list, reg))
