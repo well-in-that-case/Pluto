@@ -856,7 +856,7 @@ static void discharge2reg (FuncState *fs, expdesc *e, int reg) {
     }
     case VNONRELOC: {
       if (reg != e->u.info)
-        luaK_codeABC(fs, OP_MOVE, reg, e->u.info, 0);
+        luaK_codeABC(fs, OP_MOVE, reg, e->u.info, e->u.var.hint);
       break;
     }
     default: {

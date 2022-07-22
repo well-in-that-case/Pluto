@@ -82,6 +82,7 @@ typedef struct expdesc {
       lu_byte t;  /* table (register or upvalue) */
     } ind;
     struct {  /* for local variables */
+      bool hint;  /* for type hints */
       lu_byte ridx;  /* register holding the variable */
       unsigned short vidx;  /* compiler index (in 'actvar.arr')  */
     } var;

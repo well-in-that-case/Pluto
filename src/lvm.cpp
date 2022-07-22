@@ -1297,6 +1297,16 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
     lua_assert(isIT(i) || (cast_void(L->top = base), 1));
     vmdispatch (GET_OPCODE(i)) {
       vmcase(OP_MOVE) {
+        /*
+        ** Works by assinging a flag in the R(C) register to declare the tag types of R(A) & R(B) should be the same.
+        **
+        ** Nil check in R(A), since new declarations are always `nil`, and cause the error.
+        */
+        if (GETARG_C(i) > 0 && !ttisnil(s2v(ra)) && (ttypetag(s2v(ra)) != ttypetag(vRB(i)))) {
+          luaG_runerror(L,
+            "assignment to an object of incompatible hint type. (%s vs %s)",
+            ttypename(ttype(s2v(ra))), ttypename(ttype(vRB(i))));
+        }
         setobjs2s(L, ra, RB(i));
         vmbreak;
       }

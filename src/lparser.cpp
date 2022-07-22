@@ -1986,6 +1986,7 @@ static void restassign (LexState *ls, struct LHS_assign *lh, int nvars) {
               !vk_typehint_equals(vardesc->vd.typehint, e.k)) { /* type mismatch? */
             throw_warn(ls, "assigned value does not match hinted type", "type mismatch");
           }
+          e.u.var.hint = true; /* For OP_MOVE, both R(A) and R(B) should have the same type tag. */
         }
         luaK_storevar(ls->fs, &lh->v, &e);
         return;  /* avoid default */
